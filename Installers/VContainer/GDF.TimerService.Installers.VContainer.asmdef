@@ -4,6 +4,9 @@
     "includePlatforms": [], "excludePlatforms": [],
     "allowUnsafeCode": false, "overrideReferences": false,
     "precompiledReferences": [], "autoReferenced": true,
-    "defineConstraints": [], "versionDefines": [],
+    "defineConstraints": [ "TIMER_SERVICE_VCONTAINER" ],
+    "versionDefines": [
+        { "name": "jp.hadashikick.vcontainer", "expression": "", "define": "TIMER_SERVICE_VCONTAINER" }
+    ],
     "noEngineReferences": false
 }
