@@ -4,6 +4,9 @@
     "includePlatforms": [], "excludePlatforms": [],
     "allowUnsafeCode": false, "overrideReferences": false,
     "precompiledReferences": [], "autoReferenced": true,
-    "defineConstraints": [], "versionDefines": [],
+    "defineConstraints": [ "TIMER_SERVICE_REFLEX" ],
+    "versionDefines": [
+        { "name": "com.gustavopsantos.reflex", "expression": "", "define": "TIMER_SERVICE_REFLEX" }
+    ],
     "noEngineReferences": false
 }
