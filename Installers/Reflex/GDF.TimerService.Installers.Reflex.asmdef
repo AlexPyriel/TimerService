@@ -1,0 +1,9 @@
+{
+    "name": "GDF.TimerService.Installers.Reflex",
+    "references": [ "GDF.TimerService", "Reflex" ],
+    "includePlatforms": [], "excludePlatforms": [],
+    "allowUnsafeCode": false, "overrideReferences": false,
+    "precompiledReferences": [], "autoReferenced": true,
+    "defineConstraints": [], "versionDefines": [],
+    "noEngineReferences": false
+}

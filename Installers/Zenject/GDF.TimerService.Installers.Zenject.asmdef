@@ -1,0 +1,9 @@
+{
+    "name": "GDF.TimerService.Installers.Zenject",
+    "references": [ "GDF.TimerService", "Zenject" ],
+    "includePlatforms": [], "excludePlatforms": [],
+    "allowUnsafeCode": false, "overrideReferences": false,
+    "precompiledReferences": [], "autoReferenced": true,
+    "defineConstraints": [], "versionDefines": [],
+    "noEngineReferences": false
+}

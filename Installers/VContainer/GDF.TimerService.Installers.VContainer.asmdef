@@ -1,0 +1,9 @@
+{
+    "name": "GDF.TimerService.Installers.VContainer",
+    "references": [ "GDF.TimerService", "VContainer" ],
+    "includePlatforms": [], "excludePlatforms": [],
+    "allowUnsafeCode": false, "overrideReferences": false,
+    "precompiledReferences": [], "autoReferenced": true,
+    "defineConstraints": [], "versionDefines": [],
+    "noEngineReferences": false
+}
