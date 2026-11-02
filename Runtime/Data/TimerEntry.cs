@@ -1,6 +1,6 @@
 using System;
 
-namespace TimerService
+namespace GDF.TimerService
 {
     /// <summary>
     /// Snapshot of a single named timer. Returned by read calls on <see cref="ITimerService"/>; game

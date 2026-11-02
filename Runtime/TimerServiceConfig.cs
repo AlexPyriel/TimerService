@@ -1,4 +1,4 @@
-namespace TimerService
+namespace GDF.TimerService
 {
     /// <summary>
     /// Immutable configuration for <see cref="ITimerService"/>. Hosts build it through the fluent

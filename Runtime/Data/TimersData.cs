@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using LocalDataStorage;
 
-namespace TimerService.Data
+namespace GDF.TimerService.Data
 {
     /// <summary>
     /// Persisted collection of active timers. Serialized through <see cref="LocalDataStorage.ILocalDataStorage"/>.

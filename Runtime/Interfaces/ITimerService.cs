@@ -1,6 +1,6 @@
 using System;
 
-namespace TimerService
+namespace GDF.TimerService
 {
     /// <summary>
     /// Named countdown timers with offline progression and auto-save. Suitable for daily rewards,

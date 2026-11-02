@@ -1,7 +1,7 @@
 using Reflex.Core;
 using UnityEngine;
 
-namespace TimerService.Installers.Reflex
+namespace GDF.TimerService.Installers.Reflex
 {
     /// <summary>Registers <see cref="ITimerService"/> in a Reflex container.</summary>
     public sealed class TimerServiceReflexInstaller : MonoBehaviour, IInstaller

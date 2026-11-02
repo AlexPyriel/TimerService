@@ -3,10 +3,10 @@ using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using LocalDataStorage;
-using TimerService.Data;
+using GDF.TimerService.Data;
 using UnityEngine;
 
-namespace TimerService.Internal
+namespace GDF.TimerService.Internal
 {
     /// <summary>
     /// Default <see cref="ITimerService"/> implementation. Keeps an in-memory dictionary of named

@@ -1,7 +1,7 @@
 using System;
 using LocalDataStorage;
 
-namespace TimerService.Data
+namespace GDF.TimerService.Data
 {
     /// <summary>
     /// Timestamp (<see cref="DateTime.Ticks"/>) of the last time the service was running. Used on

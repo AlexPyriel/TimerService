@@ -4,9 +4,9 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using LocalDataStorage;
 using NUnit.Framework;
-using TimerService.Data;
+using GDF.TimerService.Data;
 
-namespace TimerService.Tests.EditMode
+namespace GDF.TimerService.Tests.EditMode
 {
     /// <summary>
     /// Pure-logic tests for <see cref="Internal.TimerService"/>. The tick loop is not exercised

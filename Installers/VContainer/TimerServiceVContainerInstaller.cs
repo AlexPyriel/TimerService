@@ -1,6 +1,7 @@
 using VContainer;
+using VContainer.Unity;
 
-namespace TimerService.Installers.VContainer
+namespace GDF.TimerService.Installers.VContainer
 {
     /// <summary>
     /// Registers <see cref="ITimerService"/> in a VContainer scope. Call <c>service.Initialize()</c>

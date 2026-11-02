@@ -1,6 +1,6 @@
 using Zenject;
 
-namespace TimerService.Installers.Zenject
+namespace GDF.TimerService.Installers.Zenject
 {
     /// <summary>Registers <see cref="ITimerService"/> in a Zenject container. Config injected as an argument.</summary>
     public sealed class TimerServiceZenjectInstaller : Installer<TimerServiceConfig, TimerServiceZenjectInstaller>
