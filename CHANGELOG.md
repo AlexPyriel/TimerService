@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.0.1] - 2026-11-02
+
+### Changed
+
+- **Breaking:** root namespace renamed from `TimerService` to `GDF.TimerService`. Consumers must
+  update `using TimerService;` → `using GDF.TimerService;` (and installer sub-namespaces similarly).
+  Alignment with the GDF.* namespace discipline across the library family.
+
+### Fixed
+
+- VContainer installer compilation: added missing `using VContainer.Unity;` so `IInstaller`
+  (which lives in `VContainer.Unity`, not `VContainer`) resolves. Without this fix the
+  installer assembly failed with `CS0246`.
+
 ## [1.0.0] - 2026-11-02
 
 Initial public release.

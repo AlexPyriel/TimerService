@@ -1,6 +1,6 @@
 {
   "name": "com.gdf.timer-service",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "displayName": "GDF Timer Service",
   "description": "Named countdown timers with offline progression and auto-save for Unity. Persisted via com.gdf.local-data-storage; dailies, cooldowns, stamina systems and reward timers survive game restarts and offline time.",
   "unity": "6000.0",

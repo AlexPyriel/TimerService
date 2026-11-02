@@ -32,7 +32,7 @@ Assembly name: `GDF.TimerService`
 Add this dependency to `Packages/manifest.json`:
 
 ```json
-"com.gdf.timer-service": "https://github.com/AlexPyriel/TimerService.git#v1.0.0"
+"com.gdf.timer-service": "https://github.com/AlexPyriel/TimerService.git#v1.0.1"
 ```
 
 For development tracking (not recommended for production), use `#main` instead of a tag.
@@ -40,13 +40,17 @@ For development tracking (not recommended for production), use `#main` instead o
 You can also install it from Unity Package Manager:
 
 - `Window -> Package Manager -> + -> Add package from git URL...`
-- `https://github.com/AlexPyriel/TimerService.git#v1.0.0`
+- `https://github.com/AlexPyriel/TimerService.git#v1.0.1`
 
 ## Usage
 
 ### 1. Register the service
 
 ```csharp
+using GDF.TimerService.Installers.VContainer;
+using LocalDataStorage.Installers.VContainer;
+using VContainer;
+
 protected override void Configure(IContainerBuilder builder)
 {
     new LocalDataStorageVContainerInstaller()
@@ -62,6 +66,9 @@ protected override void Configure(IContainerBuilder builder)
 ### 2. Initialize at startup
 
 ```csharp
+using GDF.TimerService;
+using VContainer.Unity;
+
 public sealed class BootstrapEntryPoint : IStartable
 {
     [Inject] private readonly ITimerService _timers;
@@ -73,6 +80,8 @@ public sealed class BootstrapEntryPoint : IStartable
 ### 3. Drive timers from gameplay
 
 ```csharp
+using GDF.TimerService;
+
 _timers.CreateOrReset("daily_reward", 24 * 60 * 60);
 
 if (_timers.IsCompleted("daily_reward"))
@@ -88,6 +97,9 @@ _timers.TimerCompleted += name =>
 ### 4. Query current progress for UI
 
 ```csharp
+using System;
+using GDF.TimerService;
+
 if (_timers.TryGet("daily_reward", out TimerEntry entry))
     _label.text = TimeSpan.FromSeconds(entry.RemainingSeconds).ToString(@"hh\:mm\:ss");
 ```
