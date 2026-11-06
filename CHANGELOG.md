@@ -1,5 +1,35 @@
 # Changelog
 
+## [2.0.0] - 2026-11-06
+
+Breaking release. Timer lifecycle facts are published as MessagePipe messages instead of C# events.
+
+### Changed
+
+- `TimerService` is `public sealed`; its constructor takes the four message publishers after the storage.
+- Depends on `com.gdf.local-data-storage >= 3.0.0` and `com.cysharp.messagepipe >= 1.8.2`.
+
+### Added
+
+- `TimerStartedMessage` (`Name`, `TotalSeconds`), published by `CreateOrReset`.
+- `TimerTickedMessage` (`Name`, `RemainingSeconds`), published once per second per running timer and once per timer
+  for the offline delta.
+- `TimerCompletedMessage` (`Name`, `CompletedOffline`), published once when a timer finishes.
+- `TimerRemovedMessage` (`Name`), published when `Remove` drops an existing timer.
+
+### Removed
+
+- `ITimerService.TimersChanged`, `TimerChanged` and `TimerCompleted` events.
+- Zenject installer (`TimerServiceZenjectInstaller`) and Reflex installer (`TimerServiceReflexInstaller`). The README
+  section "Using with Zenject / Reflex" shows the replacement bindings.
+
+### Migration
+
+1. Register MessagePipe once in the root scope: `builder.RegisterMessagePipe();`.
+2. Replace `TimerCompleted += name => ...` with a subscription to `TimerCompletedMessage`.
+3. Replace `TimerChanged` with `TimerTickedMessage` (progress) or `TimerStartedMessage` (restart); replace
+   `TimersChanged` with the specific message the consumer needs.
+
 ## [1.0.1] - 2026-11-02
 
 ### Changed

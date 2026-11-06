@@ -2,97 +2,177 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
-using LocalDataStorage;
-using NUnit.Framework;
 using GDF.TimerService.Data;
+using GDF.TimerService.Messages;
+using LocalDataStorage;
+using MessagePipe;
+using NUnit.Framework;
 
 namespace GDF.TimerService.Tests.EditMode
 {
     /// <summary>
-    /// Pure-logic tests for <see cref="Internal.TimerService"/>. The tick loop is not exercised
-    /// here; <see cref="Initialize"/> builds the in-memory state, offline progression is applied
-    /// through the <see cref="InMemoryStorage.LastExitOverrideTicks"/> hook, and <c>Progress</c>
-    /// is driven synchronously via the public API through CreateOrReset + SaveNow boundaries.
+    /// Pure-logic tests for <see cref="Internal.TimerService"/> on a real MessagePipe broker. The tick
+    /// loop is not exercised here; offline progression is driven by seeding <see cref="LastEnterData"/>
+    /// in the past before <see cref="Internal.TimerService.Initialize"/>.
     /// </summary>
     public sealed class TimerServiceTests
     {
-        [Test]
-        public void CreateOrReset_StoresTimerAndFiresEvents()
+        private IPublisher<TimerStartedMessage> _startedPublisher;
+        private IPublisher<TimerTickedMessage> _tickedPublisher;
+        private IPublisher<TimerCompletedMessage> _completedPublisher;
+        private IPublisher<TimerRemovedMessage> _removedPublisher;
+        private List<TimerStartedMessage> _started;
+        private List<TimerTickedMessage> _ticked;
+        private List<TimerCompletedMessage> _completed;
+        private List<TimerRemovedMessage> _removed;
+        private IDisposable _subscriptions;
+        private InMemoryStorage _storage;
+        private Internal.TimerService _service;
+
+        [SetUp]
+        public void SetUp()
         {
-            InMemoryStorage storage = new InMemoryStorage();
-            Internal.TimerService service = new Internal.TimerService(storage, TimerServiceConfig.Default());
-            service.Initialize();
+            BuiltinContainerBuilder pipe = new BuiltinContainerBuilder();
+            pipe.AddMessagePipe();
+            pipe.AddMessageBroker<TimerStartedMessage>();
+            pipe.AddMessageBroker<TimerTickedMessage>();
+            pipe.AddMessageBroker<TimerCompletedMessage>();
+            pipe.AddMessageBroker<TimerRemovedMessage>();
+            IServiceProvider provider = pipe.BuildServiceProvider();
+            _startedPublisher = provider.GetRequiredService<IPublisher<TimerStartedMessage>>();
+            _tickedPublisher = provider.GetRequiredService<IPublisher<TimerTickedMessage>>();
+            _completedPublisher = provider.GetRequiredService<IPublisher<TimerCompletedMessage>>();
+            _removedPublisher = provider.GetRequiredService<IPublisher<TimerRemovedMessage>>();
 
-            int perTimerChanges = 0;
-            int anyChanges = 0;
-            service.TimerChanged += _ => perTimerChanges++;
-            service.TimersChanged += () => anyChanges++;
+            _started = new List<TimerStartedMessage>();
+            _ticked = new List<TimerTickedMessage>();
+            _completed = new List<TimerCompletedMessage>();
+            _removed = new List<TimerRemovedMessage>();
+            _subscriptions = DisposableBag.Create(
+                provider.GetRequiredService<ISubscriber<TimerStartedMessage>>().Subscribe(_started.Add),
+                provider.GetRequiredService<ISubscriber<TimerTickedMessage>>().Subscribe(_ticked.Add),
+                provider.GetRequiredService<ISubscriber<TimerCompletedMessage>>().Subscribe(_completed.Add),
+                provider.GetRequiredService<ISubscriber<TimerRemovedMessage>>().Subscribe(_removed.Add));
 
-            service.CreateOrReset("daily_reward", 86400);
+            _storage = new InMemoryStorage();
+        }
 
-            Assert.IsTrue(service.TryGet("daily_reward", out TimerEntry entry));
+        [TearDown]
+        public void TearDown()
+        {
+            _service?.Dispose();
+            _service = null;
+            _subscriptions.Dispose();
+        }
+
+        [Test]
+        public void Ctor_NullPublisher_Throws()
+        {
+            Assert.Throws<ArgumentNullException>(() => new Internal.TimerService(_storage, null, _tickedPublisher, _completedPublisher, _removedPublisher));
+            Assert.Throws<ArgumentNullException>(() => new Internal.TimerService(_storage, _startedPublisher, null, _completedPublisher, _removedPublisher));
+            Assert.Throws<ArgumentNullException>(() => new Internal.TimerService(_storage, _startedPublisher, _tickedPublisher, null, _removedPublisher));
+            Assert.Throws<ArgumentNullException>(() => new Internal.TimerService(_storage, _startedPublisher, _tickedPublisher, _completedPublisher, null));
+        }
+
+        [Test]
+        public void CreateOrReset_StoresTimer_AndPublishesStarted()
+        {
+            _service = CreateService();
+            _service.Initialize();
+
+            _service.CreateOrReset("daily_reward", 86400);
+
+            Assert.IsTrue(_service.TryGet("daily_reward", out TimerEntry entry));
             Assert.AreEqual(86400, entry.TotalSeconds);
             Assert.AreEqual(0, entry.ElapsedSeconds);
-            Assert.AreEqual(1, perTimerChanges);
-            Assert.AreEqual(1, anyChanges);
+            Assert.AreEqual(1, _started.Count);
+            Assert.AreEqual("daily_reward", _started[0].Name);
+            Assert.AreEqual(86400, _started[0].TotalSeconds);
+            Assert.IsEmpty(_ticked);
         }
 
         [Test]
-        public void Remove_DropsTimer()
+        public void Remove_DropsTimer_AndPublishesRemovedOnce()
         {
-            InMemoryStorage storage = new InMemoryStorage();
-            Internal.TimerService service = new Internal.TimerService(storage);
-            service.Initialize();
-            service.CreateOrReset("t", 100);
+            _service = CreateService();
+            _service.Initialize();
+            _service.CreateOrReset("t", 100);
 
-            Assert.IsTrue(service.Remove("t"));
-            Assert.IsFalse(service.TryGet("t", out _));
-            Assert.IsFalse(service.Remove("t"), "Second Remove reports false.");
+            Assert.IsTrue(_service.Remove("t"));
+            Assert.IsFalse(_service.TryGet("t", out _));
+            Assert.IsFalse(_service.Remove("t"), "Second Remove reports false.");
+            Assert.IsFalse(_service.Remove("missing"));
+
+            Assert.AreEqual(1, _removed.Count, "Removing an unknown timer publishes nothing.");
+            Assert.AreEqual("t", _removed[0].Name);
         }
 
         [Test]
-        public void OfflineDelta_AdvancesTimers_ClampedAtTotal()
+        public void OfflineDelta_AdvancesTimers_ClampedAtTotal_AndPublishesOfflineCompletion()
         {
-            InMemoryStorage storage = new InMemoryStorage();
-            // Seed persisted state as if the previous session had a running timer and exited 50s ago.
-            storage.Save(new TimersData
+            // Seed persisted state as if the previous session had running timers and exited 50s ago.
+            _storage.Save(new TimersData
             {
                 Timers = new List<TimerEntry>
                 {
                     new TimerEntry { Name = "quick", TotalSeconds = 30, ElapsedSeconds = 0 },
                     new TimerEntry { Name = "slow", TotalSeconds = 1000, ElapsedSeconds = 10 },
+                    new TimerEntry { Name = "done", TotalSeconds = 5, ElapsedSeconds = 5 },
                 },
             });
-            storage.Save(new LastEnterData { LastExitTicksUtc = DateTime.UtcNow.AddSeconds(-50).Ticks });
+            _storage.Save(new LastEnterData { LastExitTicksUtc = DateTime.UtcNow.AddSeconds(-50).Ticks });
 
-            Internal.TimerService service = new Internal.TimerService(storage);
-            service.Initialize();
+            _service = CreateService();
+            _service.Initialize();
 
-            service.TryGet("quick", out TimerEntry quick);
-            service.TryGet("slow", out TimerEntry slow);
-
+            _service.TryGet("quick", out TimerEntry quick);
+            _service.TryGet("slow", out TimerEntry slow);
             Assert.AreEqual(30, quick.ElapsedSeconds, "Quick timer must clamp at TotalSeconds.");
             Assert.IsTrue(quick.IsCompleted);
             Assert.AreEqual(60, slow.ElapsedSeconds, "Slow timer must receive the full 50s delta on top of its baseline 10s.");
             Assert.IsFalse(slow.IsCompleted);
+
+            Assert.AreEqual(2, _ticked.Count, "One tick per running timer; already completed timers stay silent.");
+            Assert.AreEqual(0, FindTicked("quick").RemainingSeconds);
+            Assert.AreEqual(940, FindTicked("slow").RemainingSeconds);
+
+            Assert.AreEqual(1, _completed.Count);
+            Assert.AreEqual("quick", _completed[0].Name);
+            Assert.IsTrue(_completed[0].CompletedOffline);
+            Assert.IsEmpty(_started, "Restoring timers is not starting them.");
         }
 
         [Test]
         public void SaveNow_PersistsTimersAndLastEnter()
         {
-            InMemoryStorage storage = new InMemoryStorage();
-            Internal.TimerService service = new Internal.TimerService(storage);
-            service.Initialize();
-            service.CreateOrReset("x", 500);
+            _service = CreateService();
+            _service.Initialize();
+            _service.CreateOrReset("x", 500);
 
-            long tickBeforeSave = storage.TryLoad(out LastEnterData last) ? last.LastExitTicksUtc : 0;
-            service.SaveNow();
-            Assert.IsTrue(storage.TryLoad(out LastEnterData lastAfter));
+            long tickBeforeSave = _storage.TryLoad(out LastEnterData last) ? last.LastExitTicksUtc : 0;
+            _service.SaveNow();
+            Assert.IsTrue(_storage.TryLoad(out LastEnterData lastAfter));
             Assert.GreaterOrEqual(lastAfter.LastExitTicksUtc, tickBeforeSave);
 
-            Assert.IsTrue(storage.TryLoad(out TimersData timers));
+            Assert.IsTrue(_storage.TryLoad(out TimersData timers));
             Assert.AreEqual(1, timers.Timers.Count);
             Assert.AreEqual("x", timers.Timers[0].Name);
+        }
+
+        private Internal.TimerService CreateService()
+        {
+            return new Internal.TimerService(
+                _storage, _startedPublisher, _tickedPublisher, _completedPublisher, _removedPublisher, TimerServiceConfig.Default());
+        }
+
+        private TimerTickedMessage FindTicked(string name)
+        {
+            foreach (TimerTickedMessage message in _ticked)
+                if (message.Name == name)
+                    return message;
+
+            Assert.Fail($"No tick published for '{name}'.");
+            return default;
         }
 
         /// <summary>In-memory <see cref="ILocalDataStorage"/> fake sufficient for the pure-logic tests above.</summary>

@@ -1,6 +1,6 @@
 {
   "name": "com.gdf.timer-service",
-  "version": "1.0.1",
+  "version": "2.0.0",
   "displayName": "GDF Timer Service",
   "description": "Named countdown timers with offline progression and auto-save for Unity. Persisted via com.gdf.local-data-storage; dailies, cooldowns, stamina systems and reward timers survive game restarts and offline time.",
   "unity": "6000.0",
@@ -12,8 +12,9 @@
     "url": "https://github.com/AlexPyriel/TimerService.git"
   },
   "dependencies": {
-    "com.gdf.local-data-storage": "https://github.com/AlexPyriel/LocalDataStorage.git#v2.0.0",
-    "com.cysharp.unitask": "2.5.0"
+    "com.gdf.local-data-storage": "https://github.com/AlexPyriel/LocalDataStorage.git#v3.0.0",
+    "com.cysharp.unitask": "2.5.0",
+    "com.cysharp.messagepipe": "1.8.2"
   },
   "keywords": [
     "timer",
